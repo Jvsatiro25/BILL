@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agendamento Barbearia </title>
+
+  <!-- Fonte e ícones -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b0b0b;
+      --card:#0f0f10;
+      --accent:#c79b2b; /* dourado */
+      --muted:#bdbdbd;
+      --glass: rgba(255,255,255,0.04);
+      --radius:14px;
+    }
+
+    *{box-sizing:border-box}
+    html,body,#root{height:100%}
+    body{
+      margin:0;
+      font-family:'Roboto',sans-serif;
+      background: linear-gradient(180deg,#070707,#111);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .app {
+      width:100%;
+      max-width:880px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      min-height:620px;
+    }
+
+    /* Left: slides */
+    .left {
+      padding:34px;
+    }
+
+    .brand {
+      display:flex; gap:12px; align-items:center; margin-bottom:18px;
+    }
+    .logo {
+      width:52px; height:52px; background:linear-gradient(135deg,var(--accent),#f1c96b);
+      border-radius:10px; display:flex; align-items:center; justify-content:center; color:#111; font-weight:700;
+      box-shadow: 0 6px 18px rgba(199,155,43,0.18);
+    }
+    h1{font-size:20px; margin:0}
+    p.lead{color:var(--muted); margin-top:6px; font-size:13px}
+
+    .slide {
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+      border-radius:12px; padding:20px; margin-top:18px; border:1px solid rgba(255,255,255,0.03);
+    }
+
+    label{display:block; font-size:13px; color:var(--muted); margin-bottom:8px}
+    input[type="text"], input[type="email"], input[type="date"], select {
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.06);
+      background:var(--card);
+      color:#fff;
+      font-size:15px;
+    }
+
+    .row {display:flex; gap:12px}
+    .col {flex:1}
+    .times-grid {display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:12px}
+    .time-btn {
+      padding:10px; border-radius:8px; text-align:center; cursor:pointer; user-select:none;
+      background:var(--glass); border:1px solid rgba(255,255,255,0.03); color:var(--muted);
+    }
+    .time-btn.available:hover { box-shadow: 0 6px 18px rgba(199,155,43,0.12); transform:translateY(-2px) }
+    .time-btn.selected { background:linear-gradient(180deg,var(--accent),#e0b85a); color:#111; font-weight:700; border:none }
+
+    .barber-card { display:flex; gap:12px; align-items:center; padding:10px; border-radius:10px; cursor:pointer; background:var(--glass); border:1px solid rgba(255,255,255,0.03)}
+    .barber-card img { width:46px; height:46px; border-radius:8px; object-fit:cover }
+    .barber-card .binfo {font-size:14px}
+    .barber-card .subtitle { font-size:12px; color:var(--muted) }
+
+    .controls { display:flex; justify-content:space-between; align-items:center; margin-top:20px; gap:12px}
+    .btn { padding:12px 18px; border-radius:10px; cursor:pointer; border:none; font-weight:700 }
+    .btn.primary { background:linear-gradient(90deg,var(--accent), #f1c96b); color:#111 }
+    .btn.ghost { background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted) }
+
+    .progress { height:8px; background:rgba(255,255,255,0.03); border-radius:999px; margin-top:18px; overflow:hidden }
+    .progress > i { display:block; height:100%; background:linear-gradient(90deg,var(--accent), #f1c96b); width:0%; transition:width .4s ease }
+
+    /* Right: summary */
+    .right {
+      padding:28px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.07));
+      border-left:1px solid rgba(255,255,255,0.02);
+    }
+    .summary { position:sticky; top:28px }
+    .summary h2 { margin:0; font-size:18px; }
+    .summary .item { margin-top:18px; background:var(--card); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.02) }
+    .summary .k { color:var(--muted); font-size:13px }
+    .summary .v { margin-top:6px; font-weight:700; font-size:15px }
+
+    .notice { margin-top:14px; color:var(--muted); font-size:13px; }
+
+    /* responsive */
+    @media (max-width:900px){
+      .app{ grid-template-columns: 1fr; padding:14px }
+      .right{ order:2 }
+      .left{ order:1 }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React / ReactDOM / Babel (development) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore-compat.js"></script>
+
+  <!-- App code (JSX) -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    // Dados fixos
+    const BARBERS = [
+      { id: 'b1', name: 'João', subtitle: 'Especialista em cortes clássicos'  },
+      { id: 'b2', name: 'Victor', subtitle: 'Barbeiro moderno e detalhista'   },
+    ];
+
+    const TIMES = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+
+    function formatDate(d){
+        if(!d) return '';
+        const [year, month, day] = d.split('-'); // '2025-09-12' → ['2025','09','12']
+        return `${day}/${month}/${year}`;
+        }
+
+
+    function App(){
+      const [step, setStep] = useState(1);
+      const [client, setClient] = useState({ name:'', phone:'', email:'' });
+      const [date, setDate] = useState('');
+      const [selectedBarber, setSelectedBarber] = useState(null);
+      const [selectedTime, setSelectedTime] = useState('');
+      const [service, setService] = useState('');
+      const [booked, setBooked] = useState({}); // { 'b1': ['09:00', ...], 'b2': [...] }
+      const [loadingTimes, setLoadingTimes] = useState(false);
+      const [message, setMessage] = useState('');
+      const [submitting, setSubmitting] = useState(false);
+
+      // atualiza disponibilidade sempre que data muda
+      useEffect(() => {
+        if(!date) {
+          setBooked({});
+          return;
+        }
+        let cancelled = false;
+        async function fetchBooked(){
+          setLoadingTimes(true);
+          try{
+            // trazer todos agendamentos na data selecionada
+           const agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
+            const map = {};
+            agendamentos.filter(a => a.date === date).forEach(a => {
+            if(!map[a.barberId]) map[a.barberId] = [];
+            map[a.barberId].push(a.time);
+            });
+            setBooked(map);
+
+          }catch(err){
+            console.error(err);
+            setMessage('Erro ao buscar horários. Veja console.');
+          }finally{
+            setLoadingTimes(false);
+          }
+        }
+        fetchBooked();
+        return ()=> cancelled = true;
+      }, [date]);
+
+      // tempo / progresso visual
+      const progress = useMemo(()=> ((step-1)/5)*100, [step]);
+
+      // disponibilidade para um barbeiro
+      function isTimeBooked(barberId, time){
+        return booked[barberId] && booked[barberId].includes(time);
+      }
+
+      // Navegação
+      function goNext(){
+        setMessage('');
+        if(step===1){
+          if(!client.name || !client.phone){ setMessage('Preencha nome e telefone.'); return; }
+        }
+        if(step===2){
+          if(!date){ setMessage('Selecione a data.'); return; }
+        }
+        if(step===3){
+          if(!selectedBarber){ setMessage('Escolha um barbeiro.'); return; }
+        }
+        if(step===4){
+          if(!selectedTime){ setMessage('Escolha um horário.'); return; }
+        }
+        if(step===5){
+          if(!service){ setMessage('Escolha um serviço.'); return; }
+        }
+        if(step<6) setStep(s=>s+1);
+      }
+      function goPrev(){ setMessage(''); if(step>1) setStep(s=>s-1); }
+
+      // submissão final: verifica duplicidade novamente e salva
+      async function submitBooking(){
+        setMessage('');
+        if(!client.name || !client.phone || !date || !selectedBarber || !selectedTime || !service){
+          setMessage('Dados incompletos.');
+          return;
+        }
+        setSubmitting(true);
+        try{
+          // verifica duplicado
+          const agendamentos = JSON.parse(localStorage.getItem("agendamentos")) || [];
+            const duplicado = agendamentos.some(a =>
+            a.date === date && a.barberId === selectedBarber.id && a.time === selectedTime
+            );
+            if(duplicado){
+            setMessage('Ops — horário já reservado. Escolha outro horário.');
+            setStep(4);
+            setSubmitting(false);
+            return;
+            }
+
+
+          // salva cliente e agendamento
+          // (poderíamos ter coleção clientes separada, aqui guardamos tudo no agendamento)
+          agendamentos.push({
+            clientName: client.name,
+            clientPhone: client.phone,
+            clientEmail: client.email || '',
+            date,
+            time: selectedTime,
+            service,
+            barberId: selectedBarber.id,
+            barberName: selectedBarber.name,
+            createdAt: new Date().toISOString()
+            });
+            localStorage.setItem("agendamentos", JSON.stringify(agendamentos));
+
+
+          setMessage('Agendamento salvo com sucesso!');
+
+          // gera link de WhatsApp (coloque o número real do barbeiro)
+          const barberPhone = '5524981211920'; // ex: 5511999999999
+          // Define quais serviços são femininos
+            const FEMININOS = ["Barba", "Sobrancelha"];
+
+            // Escolhe artigo correto
+            const artigo = FEMININOS.includes(service) ? "a" : "o";
+
+            const dt = new Date(date);
+            const diaMes = `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}`;
+            const text = `Olá ${selectedBarber.name}, aqui é ${client.name}. Gostaria de marcar contigo para fazer ${artigo} ${service} no dia ${diaMes} às ${selectedTime}. Pode confirmar?`;
+
+
+          const waLink = `https://api.whatsapp.com/send?phone=${barberPhone}&text=${encodeURIComponent(text)}`;
+
+          // abrir link em nova aba para notificar
+          window.open(waLink, '_blank');
+
+          // mostra confirmação final
+          setStep(6);
+        }catch(err){
+          console.error(err);
+          setMessage('Erro ao salvar agendamento. Veja console.');
+        }finally{
+          setSubmitting(false);
+        }
+      }
+
+      // Seleciona horário (botão)
+      function toggleTime(t){
+        if(isTimeBooked(selectedBarber?.id, t)) return;
+        setSelectedTime(prev => prev === t ? '' : t);
+      }
+
+      // Renderização dos slides
+      return (
+        <div className="app">
+          <div className="left">
+            <div className="brand">
+              <div className="logo">B</div>
+              <div>
+                <h1>Barbearia</h1>
+                <p className="lead">Agende seu horário — passo a passo</p>
+              </div>
+            </div>
+
+            <div className="slide">
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <div>
+                  <strong>Passo {step} de 6</strong>
+                  <div style={{color:'var(--muted)', fontSize:13}}>Progresso</div>
+                </div>
+                <div style={{width:220}}>
+                  <div className="progress"><i style={{width: `${progress}%`}} /></div>
+                </div>
+              </div>
+
+              {/* Slide 1: cliente */}
+              {step===1 && (
+                <div style={{marginTop:16}}>
+                  <h2>Cadastro do cliente</h2>
+                  <p style={{color:'var(--muted)', marginTop:6}}>Nome e telefone são obrigatórios.</p>
+
+                  <div style={{marginTop:12}}>
+                    <label>Nome</label>
+                    <input value={client.name} onChange={e=>setClient({...client, name:e.target.value})} placeholder="Nome completo" />
+                  </div>
+
+                  <div style={{marginTop:12}}>
+                    <label>Telefone (WhatsApp)</label>
+                    <input value={client.phone} onChange={e=>setClient({...client, phone:e.target.value})} placeholder="55DDD999999999" />
+                  </div>
+
+                  <div style={{marginTop:12}}>
+                    <label>E-mail (opcional)</label>
+                    <input value={client.email} onChange={e=>setClient({...client, email:e.target.value})} placeholder="seu@email.com" />
+                  </div>
+                </div>
+              )}
+
+              {/* Slide 2: data */}
+              {step===2 && (
+                <div style={{marginTop:16}}>
+                  <h2>Escolha a data</h2>
+                  <p style={{color:'var(--muted)', marginTop:6}}>Selecione o dia desejado.</p>
+                  <div style={{marginTop:12}}>
+                    <label>Data</label>
+                    <input 
+                        type="date" 
+                        value={date} 
+                        onChange={e=>{ setDate(e.target.value); setSelectedBarber(null); setSelectedTime(''); }} 
+                        onFocus={e => e.target.showPicker && e.target.showPicker()} 
+                        />
+
+                  </div>
+                </div>
+              )}
+
+              {/* Slide 3: barbeiro */}
+              {step===3 && (
+                <div style={{marginTop:16}}>
+                  <h2>Escolha do barbeiro</h2>
+                  <p style={{color:'var(--muted)', marginTop:6}}>A lista mostra apenas barbeiros — horários serão exibidos no próximo passo.</p>
+
+                  <div style={{marginTop:12, display:'grid', gap:10}}>
+                    {BARBERS.map(b=>{
+                      // disponibilidade do barbeiro no dia (se todos os horários estiverem ocupados, marcar indisponível)
+                      const bookedTimes = booked[b.id] || [];
+                      const full = bookedTimes.length >= TIMES.length;
+                      return (
+                        <div key={b.id}
+                             className="barber-card"
+                             onClick={() => { if(!full) { setSelectedBarber(b); setSelectedTime(''); } }}
+                             style={{ opacity: full ? 0.5 : 1, border: selectedBarber?.id===b.id ? '1px solid var(--accent)' : undefined }}>
+                          <img src={b.img} alt="" />
+                          <div className="binfo">
+                            <div style={{fontWeight:700}}>{b.name}</div>
+                            <div className="subtitle">{b.subtitle}</div>
+                            <div style={{fontSize:12, color:'var(--muted)', marginTop:6}}>
+                              {full ? 'Sem horários disponíveis neste dia' : `${(booked[b.id]||[]).length} horários ocupados`}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Slide 4: horário */}
+              {step===4 && (
+                <div style={{marginTop:16}}>
+                  <h2>Escolha o horário</h2>
+                  <p style={{color:'var(--muted)', marginTop:6}}>
+                    {loadingTimes ? 'Carregando horários...' : (!selectedBarber ? 'Selecione um barbeiro primeiro.' : `Horários disponíveis para ${selectedBarber.name} em ${formatDate(date)}`)}
+                  </p>
+
+                  <div className="times-grid" style={{marginTop:12}}>
+                    {TIMES.filter(t => !isTimeBooked(selectedBarber.id, t)).map(t => (
+                        <div key={t}
+                            className={`time-btn available ${selectedTime===t ? 'selected' : ''}`}
+                            onClick={()=>toggleTime(t)}>
+                            {t}
+                        </div>
+                        ))}
+
+                  </div>
+                </div>
+              )}
+
+              {/* Slide 5: serviço */}
+              {step===5 && (
+                <div style={{marginTop:16}}>
+                  <h2>Escolha do serviço</h2>
+                  <p style={{color:'var(--muted)', marginTop:6}}>Selecione o serviço desejado.</p>
+
+                  <div style={{marginTop:12}}>
+                    <label>Serviço</label>
+                    <select value={service} onChange={e=>setService(e.target.value)}>
+                      <option value="">Selecione um serviço</option>
+                      <option value="Cabelo">Cabelo</option>
+                      <option value="Barba">Barba</option>
+                      <option value="Sobrancelha">Sobrancelha</option>
+                      <option value="Bigode">Bigode</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Slide 6: confirmação */}
+              {step===6 && (
+                <div style={{marginTop:16}}>
+                  <h2>Confirmação</h2>
+                  <p style={{color:'var(--muted)', marginTop:6}}>Seu agendamento foi confirmado — veja o resumo à direita.</p>
+
+                  <div style={{marginTop:12}}>
+                    <div style={{padding:12, borderRadius:10, background:'rgba(255,255,255,0.03)'}}>
+                      <div style={{fontWeight:700}}>{service}</div>
+                      <div style={{color:'var(--muted)', marginTop:6}}>Dia: {formatDate(date)}</div>
+                      <div style={{color:'var(--muted)', marginTop:6}}>Horário: {selectedTime}</div>
+                      <div style={{color:'var(--muted)', marginTop:6}}>Barbeiro: {selectedBarber?.name}</div>
+                      <div style={{marginTop:8}}><strong>Cliente:</strong> {client.name}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="controls">
+                <button className="btn ghost" onClick={goPrev} disabled={step===1}>Voltar</button>
+                {step < 6 ? (
+                  <button className="btn primary" onClick={ step===5 ? goNext : goNext }>{ step===5 ? 'Próximo' : 'Próximo' }</button>
+                ) : (
+                  <button className="btn primary" onClick={submitBooking}>Concluído</button>
+
+                )}
+              </div>
+
+              <div style={{display:'flex', justifyContent:'space-between', marginTop:12, gap:12}}>
+                <div style={{color:'var(--muted)'}}>{message}</div>
+                <div style={{color:'var(--muted)'}}>{submitting ? 'Enviando...' : ''}</div>
+              </div>
+
+              
+            </div>
+
+          </div>
+
+          <div className="right">
+            <div className="summary">
+              <h2>Resumo do agendamento</h2>
+
+              <div className="item" style={{marginTop:12}}>
+                <div className="k">Cliente</div>
+                <div className="v">{client.name || '-'}</div>
+                <div className="k" style={{marginTop:8}}>Telefone</div>
+                <div className="v">{client.phone || '-'}</div>
+              </div>
+
+              <div className="item">
+                <div className="k">Data</div>
+                <div className="v">{date ? formatDate(date) : '-'}</div>
+
+                <div className="k" style={{marginTop:8}}>Horário</div>
+                <div className="v">{selectedTime || '-'}</div>
+
+                <div className="k" style={{marginTop:8}}>Barbeiro</div>
+                <div className="v">{selectedBarber?.name || '-'}</div>
+              </div>
+
+              <div className="item">
+                <div className="k">Serviço</div>
+                <div className="v">{service || '-'}</div>
+              </div>
+
+              <div className="notice">Ao confirmar, será aberto um link do WhatsApp para notificar o barbeiro.</div>
+
+              
+            </div>
+          </div>
+        </div>
+      );
+
+      const [notifications, setNotifications] = useState([]);
+      const lastStatusRef = useRef({});
+      const soundRef = useRef(null);
+
+      useEffect(() => {
+        const interval = setInterval(() => {
+          const ags = JSON.parse(localStorage.getItem('agendamentos')) || [];
+          ags.forEach(a => {
+            const key = a.barberId+'_'+a.date+'_'+a.time;
+            if(a.status && lastStatusRef.current[key] !== a.status){
+              lastStatusRef.current[key] = a.status;
+              setNotifications(prev => [{ msg:`Seu agendamento de ${a.service} em ${formatDate(a.date)} às ${a.time} foi ${a.status}`, id:key }, ...prev]);
+              soundRef.current && soundRef.current.play();
+            }
+          });
+        }, 3000);
+
+        return () => clearInterval(interval);
+      }, []);
+
+      <div id="notifications">
+        {notifications.map(n => (
+          <div key={n.id} className="notification">{n.msg}</div>
+        ))}
+      </div>
+    }
+
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
